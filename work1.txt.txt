@@ -2,5 +2,6 @@ include<stdio.h>
 
 int main()
 {
+	int num = 30;
 	return 0;
 }
