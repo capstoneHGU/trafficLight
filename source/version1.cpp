@@ -121,10 +121,9 @@ public:
 		
 		Point thisCenter = getCenter();
 		double thisRadius = getRadius();
-		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y)) {
-			return true;
-		}
-		else if (((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
+		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y)&&
+			((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
+
 			return true;
 		}
 
