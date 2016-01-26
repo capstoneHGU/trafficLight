@@ -94,40 +94,53 @@ private:
 	double radius;	
 	int color;
 
-	int hit;
+	int vote;
 
 public:
 	TrafficLight(Point point, double radius, int color) {
 		this->point = point;
 		this->radius = radius;
 		this->color = color;
-		this->hit = 0;
+		this->vote = 0;
 
 	}
-	static bool checkExist(TrafficLight input, vector<TrafficLight> &cur) {
+	void voteUp() {
+		vote++;
+	}
+	static int voteUpIfExist(Point center, int color, vector<TrafficLight> &cur) {
 		
-		for (int i = cur.size(); i > 0; i--) {
-			cur[i].sameLight(input);
+		for (int i = cur.size()-1; i >= 0; i--) {
+			if ((cur[i].getColor()==color) && (cur[i].sameLight(center))){
+				cur[i].voteUp();
+				return i;
+			}
 		}
-		return false;
+		return -1;
 	}
-	bool sameLight(TrafficLight input) {
-		Point center = input.getCenter();
-
+	bool sameLight(Point center) {
+		
 		Point thisCenter = getCenter();
 		double thisRadius = getRadius();
 		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y)) {
-
+			return true;
 		}
 		else if (((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
-
+			return true;
 		}
+
+		return false;
 	}
 	double getRadius() {
 		return radius;
 	}
 	Point getCenter() {
 		return point;
+	}
+	int getColor() {
+		return color;
+	}
+	int getVote() {
+		return vote;
 	}
 
 };
@@ -162,13 +175,13 @@ int main()
 
 
 
-	vector<TrafficLight> test;
+	vector<TrafficLight> storedTrafficLight;
+	/*test.push_back(TrafficLight(Point(2, 2), 3, 3));
 	test.push_back(TrafficLight(Point(2, 2), 3, 3));
-	test.push_back(TrafficLight(Point(2, 2), 3, 3));
-	TrafficLight::checkExist(Point(2, 2),3,3,test);
-	system("PAUSE");
+	TrafficLight::voteUpIfExist(Point(2, 2),3,currentLight);*/
+	
 	// Video
-	cv::VideoCapture capture("2.avi");
+	cv::VideoCapture capture("5.avi");
 	if (!capture.isOpened())
 		return -1;
 	//프레임률 얻기
@@ -284,11 +297,20 @@ int main()
 				cv::Point center(std::round(circles[current_circle][0]), std::round(circles[current_circle][1]));// Point center
 				// Get Radius
 				int radius = std::round(circles[current_circle][2]); // get the radius according to the center pointed
-				// Draw Circle
-				cv::circle(orig_image, center, radius, cv::Scalar(30, 30, 30), 3); // 
-				putText(orig_image, std::to_string(current_circle + 1), center, 1, 2, cv::Scalar(0, 0, 255), 2);
-				// Tell
-				std::cout << current_circle + 1 << " Red light  :  " << center.x << "," << center.y << std::endl;
+
+				//int index = TrafficLight::voteUpIfExist(center, radius, storedTrafficLight);
+				//if (index == -1) {//doesn't exist add to the list
+				//	storedTrafficLight.push_back(TrafficLight(center, radius, RED));
+				//}
+				//else if(storedTrafficLight[index].getVote()> 5){
+				//	// Draw Circle
+				//	cv::circle(orig_image, center, radius, cv::Scalar(30, 30, 30), 3); // 
+				//	putText(orig_image, std::to_string(current_circle + 1), center, 1, 2, cv::Scalar(0, 0, 255), 2);
+				//	// Tell
+				//	std::cout << current_circle + 1 << " Red light  :  " << center.x << "," << center.y << std::endl;
+				//}
+				//
+				
 			}
 
 			for (size_t current_circle2 = 0; current_circle2 < circles2.size(); ++current_circle2) {
