@@ -39,6 +39,9 @@ std::vector<cv::Vec3f> FindColorCircle(cv::Mat src, cv::Mat *dst, struct HSV_str
 			cv::addWeighted(temp, 1.0, *dst, 1.0, 0.0, *dst);
 		Range++;
 	}
+
+	//threshold(*dst, *dst, 150, 255, 0);
+
 	//Use the Hough transform to detect circles in the combined threshold image --------Green
 	std::vector<cv::Vec3f> circles;
 	cv::HoughCircles(*dst, circles, CV_HOUGH_GRADIENT, 2, 45, 100, 10, 1, 30);
@@ -104,11 +107,12 @@ int main()
 	cv::Mat black_image;
 	// 1. Create image processor object
 
+	Mat red_thresh, green_thresh;
 
 	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
 
 	// Video
-	cv::VideoCapture capture("5.avi");
+	cv::VideoCapture capture("2.avi");
 	if (!capture.isOpened())
 		return -1;
 	//프레임률 얻기
@@ -211,9 +215,13 @@ int main()
 
 			cv::cvtColor(bgr_image, hsv_image, cv::COLOR_BGR2HSV);
 
+
+
 			std::vector <cv::Vec3f> circles = FindColorCircle(hsv_image, &red_hue_image, red_ranges, 2);
 			std::vector <cv::Vec3f> circles2 = FindColorCircle(hsv_image, &green_hue_image, &green_range);
 
+			cv::imshow("red", red_hue_image);
+			cv::imshow("green", green_hue_image);
 			
 			for (size_t current_circle = 0; current_circle < circles.size(); ++current_circle) {
 				// Get Center
@@ -222,6 +230,7 @@ int main()
 				int radius = std::round(circles[current_circle][2]); // get the radius according to the center pointed
 				// Draw Circle
 				cv::circle(orig_image, center, radius, cv::Scalar(30, 30, 30), 3); // 
+				putText(orig_image, std::to_string(current_circle + 1), center, 1, 2, cv::Scalar(0, 0, 255), 2);
 				// Tell
 				std::cout << current_circle + 1 << " Red light  :  " << center.x << "," << center.y << std::endl;
 			}
@@ -232,16 +241,14 @@ int main()
 				// Get Radius
 				int radius2 = std::round(circles2[current_circle2][2]); // get the radius according to the center pointed
 				// Draw Circle
-				cv::circle(orig_image, center2, radius2, cv::Scalar(200, 100, 100), 3); // 
+				cv::circle(orig_image, center2, radius2, cv::Scalar(200, 100, 100), 3); //
+				putText(orig_image, std::to_string(current_circle2 + 1), center2, 1, 2, cv::Scalar(0, 255, 0), 2);
 				// Tell
 				std::cout << current_circle2 + 1 << " green light  :  " << center2.x << "," << center2.y << std::endl;
 			}
 
 			Sleep(300);
 				
-			cv::imshow("red", red_hue_image);
-			cv::imshow("green", green_hue_image);
-
 			cv::namedWindow("output", cv::WINDOW_AUTOSIZE);
 			cv::imshow("output", orig_image);
 		}
