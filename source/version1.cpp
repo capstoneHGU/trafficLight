@@ -7,6 +7,10 @@
 #include <vector>
 #include<Windows.h> 
 
+// COLOR MACRO
+#define RED 0
+#define GREEN 1
+
 using namespace cv;
 using namespace std;
 
@@ -39,7 +43,7 @@ std::vector<cv::Vec3f> FindColorCircle(cv::Mat src, cv::Mat *dst, struct HSV_str
 			cv::addWeighted(temp, 1.0, *dst, 1.0, 0.0, *dst);
 		Range++;
 	}
-
+	
 	//threshold(*dst, *dst, 150, 255, 0);
 
 	//Use the Hough transform to detect circles in the combined threshold image --------Green
@@ -84,6 +88,50 @@ void FindRoiFromCenter(cv::Mat *scr, cv::Mat *des, int x, int y){
 	}
 }
 
+class TrafficLight {
+private:
+	Point point;
+	double radius;	
+	int color;
+
+	int hit;
+
+public:
+	TrafficLight(Point point, double radius, int color) {
+		this->point = point;
+		this->radius = radius;
+		this->color = color;
+		this->hit = 0;
+
+	}
+	static bool checkExist(TrafficLight input, vector<TrafficLight> &cur) {
+		
+		for (int i = cur.size(); i > 0; i--) {
+			cur[i].sameLight(input);
+		}
+		return false;
+	}
+	bool sameLight(TrafficLight input) {
+		Point center = input.getCenter();
+
+		Point thisCenter = getCenter();
+		double thisRadius = getRadius();
+		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y)) {
+
+		}
+		else if (((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
+
+		}
+	}
+	double getRadius() {
+		return radius;
+	}
+	Point getCenter() {
+		return point;
+	}
+
+};
+
 int main()
 {
 	double frameNumb = 0;
@@ -111,6 +159,14 @@ int main()
 
 	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
 
+
+
+
+	vector<TrafficLight> test;
+	test.push_back(TrafficLight(Point(2, 2), 3, 3));
+	test.push_back(TrafficLight(Point(2, 2), 3, 3));
+	TrafficLight::checkExist(Point(2, 2),3,3,test);
+	system("PAUSE");
 	// Video
 	cv::VideoCapture capture("2.avi");
 	if (!capture.isOpened())
