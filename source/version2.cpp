@@ -23,6 +23,16 @@ using namespace std;
 #define RED 0
 #define GREEN 1
 
+#define VOTE_MAX 20
+#define TRUE_LIGHT 10
+
+#define MOVING 0
+#define STOP_NO_RED 1
+#define STOP_RED_FOUND 2
+#define LEFT_GREEN 3
+#define STRAIGHT_GREEN 4
+#define LEFT_STRAIGHT_GREEN 5
+
 typedef struct HSV_struct{
 	int iLowH;
 	int iHighH;
@@ -234,8 +244,26 @@ int main(int argc, char* argv[]){
 
 	//controlPanel("RGB Red Color Low Range Editor", &gbr_green_ranges[0]);
 
-
 	vector<TrafficLight> storedTrafficLight;
+	vector<TrafficLight> tempTrafficLightList;
+	int state = MOVING;
+	
+
+	Mat frame;
+	Mat hsv_image;
+
+	Mat hsv_red_image;
+	Mat hsv_green_image;
+
+	Mat red_image_thresh;
+	Mat green_image_thresh;
+
+	/* Control Panel For Speed */
+	int speed = 100;
+	cv::namedWindow("Car Speed", CV_WINDOW_AUTOSIZE); //create a window called "Control"
+	//Create trackbars in "Control" window
+	cvCreateTrackbar("speed", "Car Speed", &speed, 100);
+
 
 
 	cv::VideoCapture capture("5.avi");
@@ -266,53 +294,85 @@ int main(int argc, char* argv[]){
 			{
 				continue;
 			}
-			cv::Mat frame;
+			
+			
 			if (!capture.read(frame))
 				break;
+			//resize(frame, frame, Size(), 0.5, 0.5);
 
+			Mat org = frame.clone();
 			frame = frame.rowRange(200, 350);
 			frame = frame.colRange(400, 900);
+
+			
 			//resize(frame, frame, Size(), 2, 2);
-			Mat hsv_image;
-
-			Mat hsv_red_image;
-			Mat hsv_green_image;
-
-			Mat red_image_thresh;
-			Mat green_image_thresh;
 
 
 			
 
-			cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
-
 			//Find Color Range
-			findColor(hsv_image, hsv_red_image, red_ranges, 2); // RED
-			findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
+			//findColor(hsv_image, hsv_red_image, red_ranges, 2); // RED
+			//findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
 			
 			
 			//¿Ã¡¯»≠
-			threshold(hsv_red_image, red_image_thresh, 150, 255, CV_THRESH_BINARY);
-			threshold(hsv_green_image, green_image_thresh, 0, 255, CV_THRESH_BINARY);
+			//threshold(hsv_red_image, red_image_thresh, 150, 255, CV_THRESH_BINARY);
+			//threshold(hsv_green_image, green_image_thresh, 0, 255, CV_THRESH_BINARY);
 
-			/*
-			imshow("red_image_thresh Frame", red_image_thresh);
+			//vector<TrafficLight> tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
+			//TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
 
-			resize(red_image_thresh, red_image_canny, Size(), 1, 1);
-			resize(green_image_thresh, green_image_canny, Size(), 1, 1);
-			//Canny
-			Canny(red_image_canny, red_image_canny, 0, 0);
-			Canny(green_image_canny, green_image_canny, 0, 0);
-			*/
 			
-			//Mat test = red_image_thresh.clone();
 
-			vector<TrafficLight> tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
-			TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
 
-			for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
-				if (storedTrafficLight[i].getVote()>50)
-					circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+			switch (state){
+			case MOVING:
+				if (speed == 0)
+					state = STOP_NO_RED;
+				break;
+
+			case STOP_NO_RED: // Search for RED
+				
+
+				cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
+
+				// Find Color
+				findColor(hsv_image, hsv_red_image, red_ranges, 2); 
+				//threshold
+				threshold(hsv_red_image, red_image_thresh, 150, 255, CV_THRESH_BINARY);
+				//Find circle Shapes and save in tempTrafficLightList 
+				tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
+				
+				//Search through the main list StoreTrafficLight 
+				//If it exist it will voteUp
+				//If it doesn't exist it will make new object in the StoreTrafficLight
+				TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
+
+				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
+					if (storedTrafficLight[i].getVote()>VOTE_MAX){ // If one of them is at higher than VOTE_MAX go to next State
+						//circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+						state = STOP_RED_FOUND;
+					}
+				}
+
+				break;
+
+			case STOP_RED_FOUND:
+				cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
+
+				
+
+				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
+					if (storedTrafficLight[i].getVote()>TRUE_LIGHT){ // If one of them is at higher than VOTE_MAX go to next State
+						circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+						
+
+
+						findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
+					}
+				}
+				imshow("Original Frame", frame);
+				break;
 
 			}
 			//vector<vector<Point>> contours;
@@ -350,8 +410,9 @@ int main(int argc, char* argv[]){
 
 
 
-			imshow("Original Frame", frame);
-			imshow("gbr_red_image", red_image_thresh);
+			//imshow("Original Frame", frame);
+			//imshow("gbr_red_image", red_image_thresh);
+			imshow("Real org", org);
 			//imshow("gbr_red_image", hsv_red_image);
 			//imshow("T test ", red_image_thresh);
 			//imshow("green_image_canny", green_image_canny);
