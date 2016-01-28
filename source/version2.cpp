@@ -20,6 +20,9 @@
 using namespace cv;
 using namespace std;
 
+#define RED 0
+#define GREEN 1
+
 typedef struct HSV_struct{
 	int iLowH;
 	int iHighH;
@@ -30,7 +33,70 @@ typedef struct HSV_struct{
 	int iLowV;
 	int iHighV;
 };
+class TrafficLight {
+private:
+	Point point;
+	double radius;
+	int color;
 
+	int vote;
+
+public:
+	TrafficLight(Point point, double radius, int color) {
+		this->point = point;
+		this->radius = radius;
+		this->color = color;
+		this->vote = 0;
+
+	}
+	void voteUp() {
+		vote++;
+	}
+	static void voteUpOrAdd(vector<TrafficLight> &temp, vector<TrafficLight> &cur) {
+		bool exist = false;
+		for (int j = temp.size() - 1; j >= 0; j--){
+			exist = false;
+			for (int i = cur.size() - 1; i >= 0; i--) {
+				//(cur[i].getColor() == temp[j].getColor()) && 
+				if ((cur[i].sameLight(temp[j].getCenter()))){ // exist
+					cur[i].voteUp();
+					exist = true;
+					break;
+				}
+			}
+			if (!exist){ // If it didn't exist Add Up
+				cur.push_back(temp[j]);
+			}
+		}
+		
+	}
+	
+	bool sameLight(Point center) {
+
+		Point thisCenter = getCenter();
+		double thisRadius = getRadius();
+		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y) &&
+			((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
+
+			return true;
+		}
+
+		return false;
+	}
+	double getRadius() {
+		return radius;
+	}
+	Point getCenter() {
+		return point;
+	}
+	int getColor() {
+		return color;
+	}
+	int getVote() {
+		return vote;
+	}
+
+};
 /**
 * Helper function to display text in the center of a contour
 */
@@ -82,8 +148,8 @@ void findColor(cv::Mat &src, cv::Mat &dst, HSV_struct *Range, int n = 1){
 	}
 }
 
-void findCircle(Mat &src, Mat &drawOnFrame){
-
+vector<TrafficLight> findCircle(Mat &src, Mat &drawOnFrame){
+	vector<TrafficLight> lightList;
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy; // 그림그릴때 필요한 변수
 	vector<Point> contoursOUT; // 각의 점들을 넣는곳
@@ -105,8 +171,8 @@ void findCircle(Mat &src, Mat &drawOnFrame){
 
 			// Get center and radius of the circle
 			minEnclosingCircle(contoursOUT, center, radius); 
-			drawContours(drawOnFrame, contours, i, Scalar(0, 50, 50), 2, 8, hierarchy);
-
+			//drawContours(drawOnFrame, contours, i, Scalar(0, 255, 50), 2, 8, hierarchy);
+			lightList.push_back(TrafficLight(center, radius, RED));
 			/*double area = cv::contourArea(contours[i]);
 			
 			cv::Rect r = cv::boundingRect(contours[i]);
@@ -122,63 +188,11 @@ void findCircle(Mat &src, Mat &drawOnFrame){
 		//drawContours(test, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy);
 
 	}
+
+	return lightList;
 }
 
-class TrafficLight {
-private:
-	Point point;
-	double radius;
-	int color;
 
-	int vote;
-
-public:
-	TrafficLight(Point point, double radius, int color) {
-		this->point = point;
-		this->radius = radius;
-		this->color = color;
-		this->vote = 0;
-
-	}
-	void voteUp() {
-		vote++;
-	}
-	static int voteUpIfExist(Point center, int color, vector<TrafficLight> &cur) {
-
-		for (int i = cur.size() - 1; i >= 0; i--) {
-			if ((cur[i].getColor() == color) && (cur[i].sameLight(center))){
-				cur[i].voteUp();
-				return i;
-			}
-		}
-		return -1;
-	}
-	bool sameLight(Point center) {
-
-		Point thisCenter = getCenter();
-		double thisRadius = getRadius();
-		if (((thisCenter.x - thisRadius) < center.x) && ((thisCenter.y - thisRadius) < center.y) &&
-			((thisCenter.x + thisRadius) > center.x) && ((thisCenter.y + thisRadius) > center.y)) {
-
-			return true;
-		}
-
-		return false;
-	}
-	double getRadius() {
-		return radius;
-	}
-	Point getCenter() {
-		return point;
-	}
-	int getColor() {
-		return color;
-	}
-	int getVote() {
-		return vote;
-	}
-
-};
 
 int main(int argc, char* argv[]){
 
@@ -293,8 +307,14 @@ int main(int argc, char* argv[]){
 			
 			//Mat test = red_image_thresh.clone();
 
-			findCircle(red_image_thresh.clone(), frame);
+			vector<TrafficLight> tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
+			TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
 
+			for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
+				if (storedTrafficLight[i].getVote()>50)
+					circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+
+			}
 			//vector<vector<Point>> contours;
 			//vector<Vec4i> hierarchy;
 			//vector<Point> contoursOUT;
