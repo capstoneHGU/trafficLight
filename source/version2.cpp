@@ -1,6 +1,7 @@
 #include <SDKDDKVer.h>
 #include <Windows.h>
 #include <iostream>
+#include <time.h>
 
 #pragma warning(disable:4819)
 #pragma warning(disable:4996)
@@ -24,7 +25,7 @@ using namespace std;
 #define GREEN 1
 
 #define VOTE_MAX 20
-#define TRUE_LIGHT 10
+#define TRUE_LIGHT 5
 
 #define MOVING 0
 #define STOP_NO_RED 1
@@ -107,9 +108,6 @@ public:
 	}
 
 };
-/**
-* Helper function to display text in the center of a contour
-*/
 void setLabel(cv::Mat& im, const std::string label, std::vector<cv::Point>& contour)
 {
 	int fontface = cv::FONT_HERSHEY_SIMPLEX;
@@ -202,9 +200,40 @@ vector<TrafficLight> findCircle(Mat &src, Mat &drawOnFrame){
 	return lightList;
 }
 
+void RoiFromCenter(cv::Mat &src, cv::Mat &des, Point center, int radius){
+	double x = center.x;
+	double y = center.y;
+	cout << "radius" << radius << endl;
 
+	//if (src.ro< radius*2)
+
+	if ((y - ((double)radius * 2)) < 0){
+		(des) = (src).rowRange(0, y + ((double)radius * 2));
+	}
+	else if (y + ((double)radius * 2) >(src).rows){
+		(des) = (src).rowRange(y - ((double)radius * 2), (src).rows);
+	}
+	else{
+		(des) = (src).rowRange(y - ((double)radius * 2), y + ((double)radius * 2));
+	}
+
+	if (x - ((double)radius * 2) < 0){
+		(des) = (des).colRange(0, x + (10 * radius));
+	}
+	else if (x + ((double)radius * 2) >(src).cols){
+		(des) = (des).colRange(x - ((double)radius * 2), (src).cols);
+	}
+	else{
+		(des) = (des).colRange(x - ((double)radius * 2), x + (10 * radius));
+	}
+
+	/*(*des) = (src).rowRange(y - ((double)radius*1.5), y + ((double)radius*1.5));
+	(*des) = (src).colRange(x - ((double)radius*1.5), x - (10 * radius));*/
+}
 
 int main(int argc, char* argv[]){
+
+	
 
 	struct HSV_struct red_ranges[2];
 
@@ -258,15 +287,17 @@ int main(int argc, char* argv[]){
 	Mat red_image_thresh;
 	Mat green_image_thresh;
 
+	Mat red_captured;
+
 	/* Control Panel For Speed */
-	int speed = 100;
+	int speed = 3;
 	cv::namedWindow("Car Speed", CV_WINDOW_AUTOSIZE); //create a window called "Control"
 	//Create trackbars in "Control" window
 	cvCreateTrackbar("speed", "Car Speed", &speed, 100);
 
 
 
-	cv::VideoCapture capture("5.avi");
+	cv::VideoCapture capture("19.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -277,7 +308,9 @@ int main(int argc, char* argv[]){
 	int frameNumb = 0;
 	int old_framecount = 0;
 	bool stop = false;
+	clock_t begin, finish;
 
+	begin = clock();
 	while (true) {
 		if (!stop)
 		{
@@ -285,7 +318,7 @@ int main(int argc, char* argv[]){
 			std::cout << "framenumber = " << frameNumb << std::endl;
 		}
 		if (!stop){
-
+			
 
 			if ((int)frameNumb % 3 == 0){
 
@@ -298,11 +331,11 @@ int main(int argc, char* argv[]){
 			
 			if (!capture.read(frame))
 				break;
-			//resize(frame, frame, Size(), 0.5, 0.5);
+			resize(frame, frame, Size(), 0.5, 0.5);
 
-			Mat org = frame.clone();
-			frame = frame.rowRange(200, 350);
-			frame = frame.colRange(400, 900);
+			//Mat org = frame.clone();
+			frame = frame.rowRange(0, 200);
+			//frame = frame.colRange(550, 800);
 
 			
 			//resize(frame, frame, Size(), 2, 2);
@@ -339,7 +372,9 @@ int main(int argc, char* argv[]){
 				// Find Color
 				findColor(hsv_image, hsv_red_image, red_ranges, 2); 
 				//threshold
-				threshold(hsv_red_image, red_image_thresh, 150, 255, CV_THRESH_BINARY);
+				threshold(hsv_red_image, red_image_thresh, 15, 255, CV_THRESH_BINARY);
+
+				imshow("red_image_thresh ww", hsv_red_image);
 				//Find circle Shapes and save in tempTrafficLightList 
 				tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
 				
@@ -349,9 +384,13 @@ int main(int argc, char* argv[]){
 				TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
 
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
+
 					if (storedTrafficLight[i].getVote()>VOTE_MAX){ // If one of them is at higher than VOTE_MAX go to next State
 						//circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 						state = STOP_RED_FOUND;
+						//finish = clock();
+						//cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
+						//Sleep(1000);
 					}
 				}
 
@@ -366,14 +405,23 @@ int main(int argc, char* argv[]){
 					if (storedTrafficLight[i].getVote()>TRUE_LIGHT){ // If one of them is at higher than VOTE_MAX go to next State
 						circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 						
+						//RoiFromCenter(hsv_image, red_captured, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius());
+						//
+						//imshow("red_captured Frame", red_captured);
+						//findColor(red_captured, hsv_green_image, &green_range, 1); // Green
 
-
-						findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
+						//vector<TrafficLight> tempGreenList = findCircle(hsv_green_image.clone(), frame);
+						//imshow("hsv_green_image Frame", hsv_green_image);
+						//if (tempGreenList.empty() == false){
+						//	state = STRAIGHT_GREEN;
+						//}
 					}
 				}
-				imshow("Original Frame", frame);
+				
 				break;
+			case STRAIGHT_GREEN:
 
+				putText(frame, "Time TO Move ", Point(50,50), 1, 3, CV_RGB(0, 0, 0), 1, 8);
 			}
 			//vector<vector<Point>> contours;
 			//vector<Vec4i> hierarchy;
@@ -412,7 +460,7 @@ int main(int argc, char* argv[]){
 
 			//imshow("Original Frame", frame);
 			//imshow("gbr_red_image", red_image_thresh);
-			imshow("Real org", org);
+			//imshow("Real org", org);
 			//imshow("gbr_red_image", hsv_red_image);
 			//imshow("T test ", red_image_thresh);
 			//imshow("green_image_canny", green_image_canny);
@@ -420,6 +468,7 @@ int main(int argc, char* argv[]){
 			//imshow("red_image_thresh", red_image_thresh);
 			//imshow("T test ", test);
 			//imshow("red_image_sobel", red_image_canny);
+			imshow("Original Frame", frame);
 
 		}
 
