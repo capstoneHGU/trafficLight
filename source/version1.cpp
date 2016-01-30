@@ -21,6 +21,7 @@ struct HSV_struct{
 	int iHighV;
 };
 
+//ojk
 
 /* 사용 방법 return 값은 Circle vector */
 std::vector<cv::Vec3f> FindColorCircle(cv::Mat src, cv::Mat *dst, struct HSV_struct *Range, int n = 1){
