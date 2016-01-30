@@ -318,7 +318,8 @@ int main(int argc, char* argv[]){
 			std::cout << "framenumber = " << frameNumb << std::endl;
 		}
 		if (!stop){
-			
+			if (!capture.read(frame))
+				break;
 
 			if ((int)frameNumb % 3 == 0){
 
@@ -329,8 +330,7 @@ int main(int argc, char* argv[]){
 			}
 			
 			
-			if (!capture.read(frame))
-				break;
+		
 			resize(frame, frame, Size(), 0.5, 0.5);
 
 			//Mat org = frame.clone();
