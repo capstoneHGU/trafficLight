@@ -297,7 +297,7 @@ int main(int argc, char* argv[]){
 
 
 
-	cv::VideoCapture capture("19.avi");
+	cv::VideoCapture capture("야간/REC_2015_07_21_21_50_55_D.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -330,32 +330,13 @@ int main(int argc, char* argv[]){
 			}
 			
 			
-		
-			resize(frame, frame, Size(), 0.5, 0.5);
 
 			//Mat org = frame.clone();
-			frame = frame.rowRange(0, 200);
+			//frame = frame.rowRange(0, 200);
 			//frame = frame.colRange(550, 800);
 
 			
-			//resize(frame, frame, Size(), 2, 2);
 
-
-			
-
-			//Find Color Range
-			//findColor(hsv_image, hsv_red_image, red_ranges, 2); // RED
-			//findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
-			
-			
-			//이진화
-			//threshold(hsv_red_image, red_image_thresh, 150, 255, CV_THRESH_BINARY);
-			//threshold(hsv_green_image, green_image_thresh, 0, 255, CV_THRESH_BINARY);
-
-			//vector<TrafficLight> tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
-			//TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
-
-			
 
 
 			switch (state){
