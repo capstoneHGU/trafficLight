@@ -231,6 +231,29 @@ void RoiFromCenter(cv::Mat &src, cv::Mat &des, Point center, int radius){
 	(*des) = (src).colRange(x - ((double)radius*1.5), x - (10 * radius));*/
 }
 
+
+
+void thresholdHighIntensity(Mat &src, Mat &dst, int minThresh, int maxThresh){
+	int dilation_elem = 0;
+	int dilation_size = 5;
+	int const max_elem = 2;
+	int const max_kernel_size = 21;
+
+	int dilation_type = MORPH_ELLIPSE;
+
+	Mat element = getStructuringElement(dilation_type,
+		Size(2 * dilation_size + 1, 2 * dilation_size + 1),
+		Point(dilation_size, dilation_size));
+
+
+	cvtColor(src, dst, COLOR_BGR2GRAY);
+	threshold(dst, dst, minThresh, maxThresh, CV_THRESH_BINARY);
+
+	/// Apply the dilation operation
+	dilate(dst, dst, element);
+}
+
+
 int main(int argc, char* argv[]){
 
 	
@@ -297,7 +320,7 @@ int main(int argc, char* argv[]){
 
 
 
-	cv::VideoCapture capture("야간/1.avi");
+	cv::VideoCapture capture("야간/10.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -314,13 +337,7 @@ int main(int argc, char* argv[]){
 
 
 
-	int erosion_elem = 0;
-	int erosion_size = 5;
-	int const max_elem = 2;
-	int const max_kernel_size = 21;
 	
-	int erosion_type = MORPH_ELLIPSE;
-
 
 	while (true) {
 		if (!stop)
@@ -345,40 +362,39 @@ int main(int argc, char* argv[]){
 			//Mat org = frame.clone();
 			//frame = frame.rowRange(0, 200);
 			//frame = frame.colRange(550, 800);
-			Mat bw, refined, hsv_refined, hsv_red_refined;
+
+			Mat bw_frame, refined, hsv_refined, hsv_red_refined;
 			vector<Mat> frame_channels;
 			
-
-
-
+/*
 			cvtColor(frame, bw, COLOR_BGR2GRAY);
 			threshold(bw, bw, 252, 255, CV_THRESH_BINARY);
+			*/
+			thresholdHighIntensity(frame, bw_frame, 250, 255);
 
+			// Split into 3 Channel in order to do the bitwise Operation
 			split(frame, frame_channels);
 
+			
+			/// Apply the dilation operation
+			//dilate(bw, bw, element);
 
-			Mat element = getStructuringElement(erosion_type,
-				Size(2 * erosion_size + 1, 2 * erosion_size + 1),
-				Point(erosion_size, erosion_size));
-
-			/// Apply the erosion operation
-			dilate(bw, bw, element);
-
-			bitwise_and(bw, frame_channels[0], frame_channels[0]);
-			bitwise_and(bw, frame_channels[1], frame_channels[1]);
-			bitwise_and(bw, frame_channels[2], frame_channels[2]);
+			bitwise_and(bw_frame, frame_channels[0], frame_channels[0]);
+			bitwise_and(bw_frame, frame_channels[1], frame_channels[1]);
+			bitwise_and(bw_frame, frame_channels[2], frame_channels[2]);
 
 			merge(frame_channels, refined);
 
 			cvtColor(refined, hsv_refined, cv::COLOR_BGR2HSV);
-
+			
 			findColor(hsv_refined, hsv_red_refined, red_ranges, 2);
 
 			tempTrafficLightList = findCircle(hsv_red_refined.clone(), frame);
 
+			
 			for (int i = tempTrafficLightList.size() - 1; i >= 0; i--){
 
-				if (tempTrafficLightList[i].getRadius() < 10)
+				if (tempTrafficLightList[i].getRadius() < 20)
 					circle(frame, tempTrafficLightList[i].getCenter(), tempTrafficLightList[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 				
 			}
