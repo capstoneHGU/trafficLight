@@ -297,7 +297,7 @@ int main(int argc, char* argv[]){
 
 
 
-	cv::VideoCapture capture("야간/REC_2015_07_21_21_50_55_D.avi");
+	cv::VideoCapture capture("야간/1.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -311,6 +311,17 @@ int main(int argc, char* argv[]){
 	clock_t begin, finish;
 
 	begin = clock();
+
+
+
+	int erosion_elem = 0;
+	int erosion_size = 5;
+	int const max_elem = 2;
+	int const max_kernel_size = 21;
+	
+	int erosion_type = MORPH_ELLIPSE;
+
+
 	while (true) {
 		if (!stop)
 		{
@@ -334,14 +345,49 @@ int main(int argc, char* argv[]){
 			//Mat org = frame.clone();
 			//frame = frame.rowRange(0, 200);
 			//frame = frame.colRange(550, 800);
-
+			Mat bw, refined, hsv_refined, hsv_red_refined;
+			vector<Mat> frame_channels;
 			
 
 
 
+			cvtColor(frame, bw, COLOR_BGR2GRAY);
+			threshold(bw, bw, 252, 255, CV_THRESH_BINARY);
+
+			split(frame, frame_channels);
+
+
+			Mat element = getStructuringElement(erosion_type,
+				Size(2 * erosion_size + 1, 2 * erosion_size + 1),
+				Point(erosion_size, erosion_size));
+
+			/// Apply the erosion operation
+			dilate(bw, bw, element);
+
+			bitwise_and(bw, frame_channels[0], frame_channels[0]);
+			bitwise_and(bw, frame_channels[1], frame_channels[1]);
+			bitwise_and(bw, frame_channels[2], frame_channels[2]);
+
+			merge(frame_channels, refined);
+
+			cvtColor(refined, hsv_refined, cv::COLOR_BGR2HSV);
+
+			findColor(hsv_refined, hsv_red_refined, red_ranges, 2);
+
+			tempTrafficLightList = findCircle(hsv_red_refined.clone(), frame);
+
+			for (int i = tempTrafficLightList.size() - 1; i >= 0; i--){
+
+				if (tempTrafficLightList[i].getRadius() < 10)
+					circle(frame, tempTrafficLightList[i].getCenter(), tempTrafficLightList[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+				
+			}
+
+			imshow("Final", hsv_red_refined);
+
 			switch (state){
 			case MOVING:
-				if (speed == 0)
+				if (speed == 100)
 					state = STOP_NO_RED;
 				break;
 

@@ -10,7 +10,7 @@
 using namespace cv;
 using namespace std;
 
-int main()
+int main2()
 {
 	Mat original;
 	Mat orig_copy;
@@ -44,7 +44,7 @@ int main()
 	clock_t begin, end;
 
 	// Video
-	VideoCapture capture("night.avi");
+	VideoCapture capture("¾ß°£/REC_2015_07_21_21_50_55_D.avi");
 	double fpsNum = capture.get(CV_CAP_PROP_FPS);
 
 	if (!capture.isOpened())
@@ -67,6 +67,7 @@ int main()
 				break;
 			
 			if ((int)frameNumb % 3 == 0){
+				
 
 			}
 			else
@@ -77,7 +78,7 @@ int main()
 			orig_copy = original.clone();
 
 			//resize the video to 50%
-			resize(orig_copy, orig_copy, Size(), 0.5, 0.5);
+			//resize(orig_copy, orig_copy, Size(), 0.5, 0.5);
 
 			cvtColor(orig_copy, gray, CV_BGR2GRAY);
 
@@ -114,7 +115,7 @@ int main()
 			merge(gamma_merge, gamma_outcome);
 			
 			imshow("merged", gamma_outcome);
-			cv::imshow("back_light", orig_copy);
+			imshow("back_light", orig_copy);
 
 			
 			
