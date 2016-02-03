@@ -63,9 +63,14 @@ public:
 	void voteUp() {
 		vote++;
 	}
-	static void voteUpOrAdd(vector<TrafficLight> &temp, vector<TrafficLight> &cur) {
+	static void voteUpOrAdd_IfRadiusIsBetween(vector<TrafficLight> &temp, vector<TrafficLight> &cur, int minRadius, int maxRadius ) {
 		bool exist = false;
 		for (int j = temp.size() - 1; j >= 0; j--){
+			//Check minimum Radius
+			if ((temp[j].getRadius() < minRadius) || temp[j].getRadius() > maxRadius){
+				continue;
+			}
+
 			exist = false;
 			for (int i = cur.size() - 1; i >= 0; i--) {
 				//(cur[i].getColor() == temp[j].getColor()) && 
@@ -320,7 +325,7 @@ int main(int argc, char* argv[]){
 
 
 
-	cv::VideoCapture capture("야간/10.avi");
+	cv::VideoCapture capture("야간/1.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -366,76 +371,49 @@ int main(int argc, char* argv[]){
 			Mat bw_frame, refined, hsv_refined, hsv_red_refined;
 			vector<Mat> frame_channels;
 			
-/*
-			cvtColor(frame, bw, COLOR_BGR2GRAY);
-			threshold(bw, bw, 252, 255, CV_THRESH_BINARY);
-			*/
-			thresholdHighIntensity(frame, bw_frame, 250, 255);
-
-			// Split into 3 Channel in order to do the bitwise Operation
-			split(frame, frame_channels);
-
-			
-			/// Apply the dilation operation
-			//dilate(bw, bw, element);
-
-			bitwise_and(bw_frame, frame_channels[0], frame_channels[0]);
-			bitwise_and(bw_frame, frame_channels[1], frame_channels[1]);
-			bitwise_and(bw_frame, frame_channels[2], frame_channels[2]);
-
-			merge(frame_channels, refined);
-
-			cvtColor(refined, hsv_refined, cv::COLOR_BGR2HSV);
-			
-			findColor(hsv_refined, hsv_red_refined, red_ranges, 2);
-
-			tempTrafficLightList = findCircle(hsv_red_refined.clone(), frame);
-
-			
-			for (int i = tempTrafficLightList.size() - 1; i >= 0; i--){
-
-				if (tempTrafficLightList[i].getRadius() < 20)
-					circle(frame, tempTrafficLightList[i].getCenter(), tempTrafficLightList[i].getRadius(), cv::Scalar(30, 255, 30), 3);
-				
-			}
-
-			imshow("Final", hsv_red_refined);
 
 			switch (state){
 			case MOVING:
-				if (speed == 100)
+				if (speed == 3)
 					state = STOP_NO_RED;
 				break;
 
 			case STOP_NO_RED: // Search for RED
+
+
+				// Threshold Intensity of the Original Input Image
+				thresholdHighIntensity(frame, bw_frame, 250, 255);
 				
+				//Split the Original Frame & Apply Bitwise And operation with the bw_frame
+				split(frame, frame_channels);
+				bitwise_and(bw_frame, frame_channels[0], frame_channels[0]);
+				bitwise_and(bw_frame, frame_channels[1], frame_channels[1]);
+				bitwise_and(bw_frame, frame_channels[2], frame_channels[2]);
+				merge(frame_channels, refined);
 
-				cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
+				// Convert it to HSV color space
+				cvtColor(refined, hsv_refined, cv::COLOR_BGR2HSV);
+				findColor(hsv_refined, hsv_red_refined, red_ranges, 2);
 
-				// Find Color
-				findColor(hsv_image, hsv_red_image, red_ranges, 2); 
-				//threshold
-				threshold(hsv_red_image, red_image_thresh, 15, 255, CV_THRESH_BINARY);
+				tempTrafficLightList = findCircle(hsv_red_refined.clone(), frame);
 
-				imshow("red_image_thresh ww", hsv_red_image);
-				//Find circle Shapes and save in tempTrafficLightList 
-				tempTrafficLightList = findCircle(red_image_thresh.clone(), frame);
+				//Add the Temp list to Main list if the radius is between minRadius ~ maxRadius
+				TrafficLight::voteUpOrAdd_IfRadiusIsBetween(tempTrafficLightList, storedTrafficLight,5,20);
 				
-				//Search through the main list StoreTrafficLight 
-				//If it exist it will voteUp
-				//If it doesn't exist it will make new object in the StoreTrafficLight
-				TrafficLight::voteUpOrAdd(tempTrafficLightList, storedTrafficLight);
+				bitwise_or(bw_frame, hsv_red_refined, hsv_red_refined);
 
+				imshow("hsv_red_refined", hsv_red_refined);
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
 
 					if (storedTrafficLight[i].getVote()>VOTE_MAX){ // If one of them is at higher than VOTE_MAX go to next State
 						//circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
-						state = STOP_RED_FOUND;
+						//state = STOP_RED_FOUND;
 						//finish = clock();
 						//cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
 						//Sleep(1000);
 					}
 				}
+
 
 				break;
 
