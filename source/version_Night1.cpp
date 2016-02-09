@@ -66,10 +66,24 @@ public:
 	static void voteUpOrAdd_IfRadiusIsBetween(vector<TrafficLight> &temp, vector<TrafficLight> &cur, int minRadius, int maxRadius ) {
 		bool exist = false;
 		for (int j = temp.size() - 1; j >= 0; j--){
-			//Check minimum Radius
-			if ((temp[j].getRadius() < minRadius) || temp[j].getRadius() > maxRadius){
+
+			int tempRadius = temp[j].getRadius();
+			Point tempCenter = temp[j].getCenter();
+			//Check minimum and Maximum of the Radius
+			if ((tempRadius < minRadius) || tempRadius > maxRadius){
 				continue;
 			}
+
+			//Check the location of the Center(circle)
+			//if it is too close to the border, it won't be count as the traffic light
+			if ((tempCenter.x < minRadius) || ((tempCenter.x + minRadius) >  1280)){
+				continue;
+			}
+			else if ((tempCenter.y < minRadius) || ((tempCenter.y + minRadius) >  720)){
+				continue;
+			}
+
+
 
 			exist = false;
 			for (int i = cur.size() - 1; i >= 0; i--) {
@@ -159,6 +173,52 @@ void findColor(cv::Mat &src, cv::Mat &dst, HSV_struct *Range, int n = 1){
 			cv::addWeighted(temp, 1.0, dst, 1.0, 0.0, dst);
 		Range++;
 	}
+}
+
+vector<TrafficLight> findCircle(Mat &src, Mat &drawOnFrame, int minRadius, int maxRadius){
+	vector<TrafficLight> lightList;
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy; // 그림그릴때 필요한 변수
+
+	vector<Point> contoursOUT; // 각의 점들을 넣는곳
+
+	Point2f center;
+	float radius;
+	findContours(src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
+
+	for (int i = 0; i < contours.size(); i++){
+		//float area = contourArea(contours[i], false);
+
+		approxPolyDP(Mat(contours[i]), contoursOUT, 3, true); //Get the 각
+
+		//drawContours(frame, contours, i, Scalar(0, 50, 50), 2, 8, hierarchy);
+
+		if (contoursOUT.size() >= 4){ // If circle
+			//int index = TrafficLight::voteUpIfExist(contoursOUT, radius, storedTrafficLight);
+			cout << "Circle Detected" << contoursOUT.size() << ", Number :" << i << endl;
+
+			// Get center and radius of the circle
+			minEnclosingCircle(contoursOUT, center, radius);
+			//drawContours(drawOnFrame, contours, i, Scalar(0, 255, 50), 2, 8, hierarchy);
+			//if (minRadius < )
+			lightList.push_back(TrafficLight(center, radius, RED));
+			/*double area = cv::contourArea(contours[i]);
+
+			cv::Rect r = cv::boundingRect(contours[i]);
+			int radius = r.width / 2;
+
+			if (std::abs(1 - ((double)r.width / r.height)) <= 0.2 &&
+			std::abs(1 - (area / (CV_PI * (radius*radius)))) <= 0.2)
+
+			setLabel(red_image_thresh, "RC", contours[i]);*/
+		}
+
+		//float area = contourArea(contours[i], false);
+		//drawContours(test, contours, i, Scalar(255, 255, 255), 2, 8, hierarchy);
+
+	}
+
+	return lightList;
 }
 
 vector<TrafficLight> findCircle(Mat &src, Mat &drawOnFrame){
@@ -259,7 +319,7 @@ void thresholdHighIntensity(Mat &src, Mat &dst, int minThresh, int maxThresh){
 }
 
 
-int main(int argc, char* argv[]){
+int main3(int argc, char* argv[]){
 
 	
 
@@ -318,7 +378,7 @@ int main(int argc, char* argv[]){
 	Mat red_captured;
 
 	/* Control Panel For Speed */
-	int speed = 3;
+	int speed = 0;
 	cv::namedWindow("Car Speed", CV_WINDOW_AUTOSIZE); //create a window called "Control"
 	//Create trackbars in "Control" window
 	cvCreateTrackbar("speed", "Car Speed", &speed, 100);
@@ -348,7 +408,7 @@ int main(int argc, char* argv[]){
 		if (!stop)
 		{
 			frameNumb++;
-			std::cout << "framenumber = " << frameNumb << std::endl;
+			std::cout << "framenumber = " << frameNumb <<  "frame row = " << frame.rows <<" frame col"<<frame.cols << std::endl;
 		}
 		if (!stop){
 			if (!capture.read(frame))
@@ -374,12 +434,21 @@ int main(int argc, char* argv[]){
 
 			switch (state){
 			case MOVING:
-				if (speed == 3)
+				if (speed == 0)
 					state = STOP_NO_RED;
 				break;
 
 			case STOP_NO_RED: // Search for RED
 
+				// If the car began to move on  reset state
+				if (speed > 0){
+					//empty storedTrafficLight
+					storedTrafficLight.clear();
+					if (storedTrafficLight.empty()){
+						cout << "Success Clearing";
+						state = MOVING;
+					}
+				}
 
 				// Threshold Intensity of the Original Input Image
 				thresholdHighIntensity(frame, bw_frame, 250, 255);
@@ -399,15 +468,14 @@ int main(int argc, char* argv[]){
 
 				//Add the Temp list to Main list if the radius is between minRadius ~ maxRadius
 				TrafficLight::voteUpOrAdd_IfRadiusIsBetween(tempTrafficLightList, storedTrafficLight,5,20);
-				
-				bitwise_or(bw_frame, hsv_red_refined, hsv_red_refined);
+
 
 				imshow("hsv_red_refined", hsv_red_refined);
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
 
 					if (storedTrafficLight[i].getVote()>VOTE_MAX){ // If one of them is at higher than VOTE_MAX go to next State
 						//circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
-						//state = STOP_RED_FOUND;
+						state = STOP_RED_FOUND;
 						//finish = clock();
 						//cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
 						//Sleep(1000);
@@ -418,24 +486,46 @@ int main(int argc, char* argv[]){
 				break;
 
 			case STOP_RED_FOUND:
-				cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
 
+				// If the car began to move on  reset state
+				if (speed > 0){
+					//empty storedTrafficLight
+					storedTrafficLight.clear();
+					if (storedTrafficLight.empty()){
+						cout << "Success Clearing";
+						state = MOVING;
+					}
+				}
 				
+				
+				//cv::cvtColor(frame, hsv_image, cv::COLOR_BGR2HSV);
+
+				//findColor(hsv_image, hsv_green_image, &green_range, 1); // Green
+				//imshow("hsv_green_image Frame", hsv_green_image);
 
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
-					if (storedTrafficLight[i].getVote()>TRUE_LIGHT){ // If one of them is at higher than VOTE_MAX go to next State
+					if (storedTrafficLight[i].getVote() > TRUE_LIGHT){ // If one of them is at higher than VOTE_MAX go to next State
 						circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 						
-						//RoiFromCenter(hsv_image, red_captured, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius());
+						
+						RoiFromCenter(frame, red_captured, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius());
 						//
-						//imshow("red_captured Frame", red_captured);
-						//findColor(red_captured, hsv_green_image, &green_range, 1); // Green
-
-						//vector<TrafficLight> tempGreenList = findCircle(hsv_green_image.clone(), frame);
-						//imshow("hsv_green_image Frame", hsv_green_image);
-						//if (tempGreenList.empty() == false){
-						//	state = STRAIGHT_GREEN;
-						//}
+						cv::cvtColor(red_captured, hsv_green_image, cv::COLOR_BGR2HSV);
+						//imshow("red_captured Frame" + to_string(i), red_captured);
+						
+						
+						findColor(hsv_green_image, hsv_green_image, &green_range, 1);
+						imshow("hsv_green_image Frame", hsv_green_image);
+						vector<TrafficLight> tempGreenList = findCircle(hsv_green_image.clone(), frame);
+						
+						if (tempGreenList.empty() == false){
+							cout << "GREEN";
+							system("PAUSE");
+							for (int j = storedTrafficLight.size() - 1; j >= 0; j--){
+								//circle(frame, tempGreenList[j].getCenter(), tempGreenList[j].getRadius(), cv::Scalar(30, 255, 30), 3);
+							}
+							//	state = STRAIGHT_GREEN;
+						}
 					}
 				}
 				
