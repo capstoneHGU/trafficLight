@@ -282,7 +282,7 @@ int main(int argc, char* argv[]){
 	
 
 	int state = MOVING;
-	int speed = 10;
+	int speed = 0;
 	cv::namedWindow("Control Panel", CV_WINDOW_AUTOSIZE); //create a window called "Control"
 	cvCreateTrackbar("speed", "Control Panel", &speed, 100);
 	int minRadius = 5;
@@ -294,7 +294,7 @@ int main(int argc, char* argv[]){
 
 	// Morphological
 	int dilation_elem = 0;
-	int dilation_size = 5;
+	int dilation_size = 3;
 	int const max_elem = 2;
 	int const max_kernel_size = 21;
 
@@ -305,7 +305,7 @@ int main(int argc, char* argv[]){
 
 
 	// Video Capture Related
-	cv::VideoCapture capture("야간/1.avi");
+	cv::VideoCapture capture("야간/7.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -314,6 +314,8 @@ int main(int argc, char* argv[]){
 	int frameNumb = 0;
 	bool stop = false;
 
+	clock_t begin, finish;
+	begin = clock();
 
 
 	while (true) {
@@ -395,7 +397,7 @@ int main(int argc, char* argv[]){
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
 					
 					if (storedTrafficLight[i].getVote()>VOTE_MAX){ // If one of them is at higher than VOTE_MAX go to next State
-						//circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
+						circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 						
 						state = STOP_RED_FOUND;
 						
@@ -408,13 +410,17 @@ int main(int argc, char* argv[]){
 
 				break;
 			case STOP_RED_FOUND:
+
 				for (int i = storedTrafficLight.size() - 1; i >= 0; i--){
 
 					if (storedTrafficLight[i].getVote() > TRUE_LIGHT){ // If one of them is at higher than VOTE_MAX go to next State
 						circle(frame, storedTrafficLight[i].getCenter(), storedTrafficLight[i].getRadius(), cv::Scalar(30, 255, 30), 3);
 						
 					}
+
 				}
+				finish = clock();
+				cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
 				break;
 			default:
 				break;

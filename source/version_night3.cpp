@@ -284,14 +284,14 @@ int main(int argc, char* argv[]){
 	Mat frame_shot;
 
 	int state = MOVING;
-	int speed = 10;
+	int speed =0;
 	int j;
 	int k;
 
 	cv::namedWindow("Control Panel", CV_WINDOW_AUTOSIZE); //create a window called "Control"
 	cvCreateTrackbar("speed", "Control Panel", &speed, 100);
 	int minRadius = 5;
-	int maxRadius = 30;
+	int maxRadius = 20;
 
 	//Threshold
 	int minThresh = 250;
@@ -310,7 +310,7 @@ int main(int argc, char* argv[]){
 
 
 	// Video Capture Related
-	cv::VideoCapture capture("야간/2.avi");
+	cv::VideoCapture capture("야간/7.avi");
 	if (!capture.isOpened())
 		return -1;
 
@@ -319,13 +319,13 @@ int main(int argc, char* argv[]){
 	int frameNumb = 0;
 	bool stop = false;
 
-
-
+	clock_t begin, finish;
+	begin = clock();
 	while (true) {
 		if (!stop)
 		{
 			frameNumb++;
-			std::cout << "framenumber = " << frameNumb << endl;// << "frame row = " << frame.rows << " frame col" << frame.cols << std::endl;
+			//std::cout << "framenumber = " << frameNumb << endl;// << "frame row = " << frame.rows << " frame col" << frame.cols << std::endl;
 		}
 		if (!stop){
 			if (!capture.read(frame))
@@ -405,6 +405,7 @@ int main(int argc, char* argv[]){
 
 				// find circle and store in temp TrafficLight list
 				// if it new it will add or else vote up into storedTrafficLight
+				// iterrative inside
 				findCircle(intensity_frame, storedTrafficLight, minRadius, maxRadius, frame.rows, frame.cols, LIGHT);
 
 				if (storedTrafficLight.empty()){
@@ -421,6 +422,8 @@ int main(int argc, char* argv[]){
 						
 						j = storedTrafficLight.size() - 1;
 						frame_shot = frame.clone();
+						cout << "JJJJJ " << j << endl;
+
 						break;
 						//finish = clock();
 						//cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
@@ -475,6 +478,7 @@ int main(int argc, char* argv[]){
 					}
 
 					j--;
+					k--;
 					//count non zero
 					/*
 					dilate(circle_object_channels[0], circle_object_channels[0], element);
@@ -489,7 +493,7 @@ int main(int argc, char* argv[]){
 					merge(circle_object_channels, circle_object);*/
 
 					//imshow("SSS" + to_string(i), circle_object);
-					k--;
+					
 				}
 			//}
 				
@@ -502,6 +506,8 @@ int main(int argc, char* argv[]){
 						putText(frame, to_string(i), storedTrafficLight[i].getCenter(), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 44, 255));
 					//}
 				}
+				finish = clock();
+				cout << "수행시간: " << ((double)(finish - begin) / CLOCKS_PER_SEC) << endl;
 				break;
 			default:
 				break;
