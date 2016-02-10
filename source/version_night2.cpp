@@ -366,13 +366,12 @@ int main(int argc, char* argv[]){
 				//findHighIntensity(frame, intensity_frame, 250, 255);
 				
 
-
 				cvtColor(frame, intensity_frame, COLOR_BGR2GRAY);
 				threshold(intensity_frame, intensity_frame, minThresh, maxThresh, CV_THRESH_BINARY);
-
 				/// Apply the dilation operation
 				dilate(intensity_frame, intensity_frame, element);
 				
+
 				//Split the Original Frame & Apply Bitwise And operation with the intensity_frame
 				split(frame, frame_channels);
 				bitwise_and(intensity_frame, frame_channels[0], frame_channels[0]);
@@ -380,6 +379,7 @@ int main(int argc, char* argv[]){
 				bitwise_and(intensity_frame, frame_channels[2], frame_channels[2]);
 				merge(frame_channels, intensity_frame);
 				
+				imshow("INTENSITY", intensity_frame);
 				// Convert intensity_frame to HSV color space
 				cvtColor(intensity_frame, intensity_frame, cv::COLOR_BGR2HSV);
 				
