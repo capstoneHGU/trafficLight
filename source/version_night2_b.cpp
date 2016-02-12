@@ -629,11 +629,6 @@ int main(int argc, char* argv[]){
 			capture.set(CV_CAP_PROP_POS_FRAMES, frameNumb - 100);
 			frameNumb = frameNumb - 100;
 		}
-		else if (key == 48){
-			speed = 0;
-		}
-		else if (key == 49){
-			speed++;
-		}
+		
 	}
 }
