@@ -408,7 +408,7 @@ int main(int argc, char* argv[]){
 
 
 	// Video Capture Related
-	cv::VideoCapture capture("1.avi");
+	cv::VideoCapture capture("2.avi");
 	if (!capture.isOpened())
 		return -1;
 

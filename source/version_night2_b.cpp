@@ -408,7 +408,7 @@ int main(int argc, char* argv[]){
 
 
 	// Video Capture Related
-	cv::VideoCapture capture("야간/1.avi");
+	cv::VideoCapture capture("야간/노답_좌회전.avi");
 	if (!capture.isOpened())
 		return -1;
 
